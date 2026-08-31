@@ -129,6 +129,17 @@ h1 span { color: var(--lime); }
 .next-card { margin-top: 28px; }
 #nextCanvas { display: block; width: 128px; height: 104px; margin-top: 10px; background: rgba(0,0,0,.15); border: 1px solid var(--line); }
 
+.shift-card { margin-top: 22px; }
+.shift-head { display: flex; align-items: center; justify-content: space-between; color: var(--muted); font-size: 10px; letter-spacing: .16em; text-transform: uppercase; }
+.shift-head strong { color: var(--lime); font-size: 12px; }
+.shift-track { height: 8px; margin-top: 9px; overflow: hidden; border: 1px solid var(--line); background: #0a0c11; }
+#shiftFill { display: block; width: 0; height: 100%; background: linear-gradient(90deg, var(--purple), var(--lime)); box-shadow: 0 0 12px rgba(201,255,39,.7); transition: width .2s ease; }
+#shiftButton { width: 100%; margin-top: 9px; padding: 8px 4px; border: 1px solid var(--line); background: transparent; color: #656873; cursor: not-allowed; font-size: 9px; letter-spacing: .08em; text-transform: uppercase; }
+#shiftButton.ready { border-color: var(--lime); color: var(--lime); cursor: pointer; animation: meter-pulse 1s infinite alternate; }
+#challengeStatus { min-height: 28px; margin: 10px 0 0; color: var(--muted); font-size: 9px; line-height: 1.5; }
+.bomb-help { margin: 12px 0 0; padding-top: 11px; border-top: 1px solid var(--line); color: var(--muted); font-size: 9px; line-height: 1.55; }
+.bomb-help strong { display: block; margin-bottom: 3px; color: var(--orange); font-size: 9px; letter-spacing: .14em; text-transform: uppercase; }
+
 .board-wrap {
   position: relative;
   width: 272px;
@@ -137,6 +148,11 @@ h1 span { color: var(--lime); }
   border: 1px solid #3b404b;
   box-shadow: 0 28px 70px rgba(0,0,0,.35), 0 0 40px rgba(201,255,39,.03);
 }
+
+.board-wrap.flash { animation: board-flash .3s ease; }
+.game-toast { position: absolute; z-index: 3; top: 44%; left: 50%; width: 90%; opacity: 0; pointer-events: none; color: var(--lime); font: 400 22px/1 "Archivo Black", sans-serif; letter-spacing: -.03em; text-align: center; text-shadow: 0 3px 15px #000; transform: translate(-50%, 10px) scale(.9); }
+.game-toast.show { animation: toast-pop 1.15s ease both; }
+.game-toast.bomb { color: var(--orange); font-size: 28px; }
 
 #gameCanvas { display: block; width: 270px; height: 540px; background: #0a0c11; }
 
@@ -158,6 +174,7 @@ h1 span { color: var(--lime); }
 .overlay p { margin: 0; }
 #overlayKicker { color: var(--lime); font-size: 11px; letter-spacing: .2em; text-transform: uppercase; }
 .overlay h2 { margin: 12px 0 28px; font: 400 45px/.92 "Archivo Black", sans-serif; letter-spacing: -.05em; text-transform: uppercase; }
+#overlayRules { max-width: 210px; margin: -8px 0 24px; color: var(--ink); font-size: 12px; line-height: 1.6; }
 #overlayHint { max-width: 220px; margin-top: 20px; color: var(--muted); font-size: 10px; line-height: 1.6; }
 
 .primary-button {
@@ -186,6 +203,10 @@ kbd { min-width: 27px; padding: 5px 7px; border: 1px solid #4b505c; border-radiu
 .text-button:hover, .icon-button:hover { color: var(--ink); }
 
 .touch-controls { display: none; }
+
+@keyframes meter-pulse { to { box-shadow: 0 0 16px rgba(201,255,39,.3); } }
+@keyframes board-flash { 50% { filter: brightness(1.8); } }
+@keyframes toast-pop { 0% { opacity: 0; transform: translate(-50%, 10px) scale(.9); } 18%, 72% { opacity: 1; transform: translate(-50%, 0) scale(1); } 100% { opacity: 0; transform: translate(-50%, -18px) scale(1); } }
 
 footer {
   display: flex;
@@ -221,10 +242,12 @@ footer {
   .stat strong { font-size: 20px; }
   .stat.compact strong { font-size: 16px; }
   .next-card { display: none; }
+  .shift-card { display: none; }
+  .bomb-help { display: none; }
   .controls-panel { display: none; }
-  .touch-controls { display: grid; grid-template-columns: repeat(5, 1fr); gap: 7px; width: 272px; margin: 12px auto 0; }
+  .touch-controls { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; width: 272px; margin: 12px auto 0; }
   .touch-controls button { height: 46px; padding: 0; border: 1px solid var(--line); background: var(--panel); color: var(--ink); border-radius: 3px; touch-action: manipulation; }
-  .touch-controls button:last-child { color: var(--lime); font-size: 10px; font-weight: 600; }
+  .touch-controls button:nth-last-child(-n+2) { color: var(--lime); font-size: 9px; font-weight: 600; }
   footer { width: 272px; margin-inline: auto; }
 }
 
@@ -265,13 +288,22 @@ footer {
             <span>Next up</span>
             <canvas id="nextCanvas" width="128" height="104" aria-label="Next piece"></canvas>
           </div>
+          <div class="shift-card">
+            <div class="shift-head"><span>Shift meter</span><strong id="shiftStatus">0%</strong></div>
+            <div class="shift-track"><i id="shiftFill"></i></div>
+            <button id="shiftButton" type="button">Charge with row clears</button>
+            <p id="challengeStatus">Gold target arrives in 8 pieces.</p>
+          </div>
+          <p class="bomb-help"><strong>Bomb</strong>Clear rows to fill SHIFT. When ready, press B to clear a 3×3 area.</p>
         </aside>
 
         <div class="board-wrap">
           <canvas id="gameCanvas" width="300" height="600" aria-label="Tetris game board"></canvas>
+          <div id="gameToast" class="game-toast" aria-live="polite"></div>
           <div id="overlay" class="overlay">
             <p id="overlayKicker">Ready?</p>
             <h2 id="overlayTitle">Build it<br />up.</h2>
+            <p id="overlayRules">Complete full rows to clear them.<br />Don’t let the stack reach the top.</p>
             <button id="startButton" class="primary-button" type="button">Start game</button>
             <p id="overlayHint">Arrow keys to move · Space to drop</p>
           </div>
@@ -285,6 +317,7 @@ footer {
               <div><dt><kbd>↑</kbd></dt><dd>Rotate</dd></div>
               <div><dt><kbd>↓</kbd></dt><dd>Soft drop</dd></div>
               <div><dt><kbd>Space</kbd></dt><dd>Hard drop</dd></div>
+              <div><dt><kbd>B</kbd></dt><dd>Use bomb</dd></div>
               <div><dt><kbd>P</kbd></dt><dd>Pause</dd></div>
             </dl>
           </div>
@@ -298,6 +331,7 @@ footer {
         <button type="button" data-action="right" aria-label="Move right">→</button>
         <button type="button" data-action="down" aria-label="Soft drop">↓</button>
         <button type="button" data-action="drop" aria-label="Hard drop">DROP</button>
+        <button type="button" data-action="shift" aria-label="Activate bomb">BOMB</button>
       </section>
 
       <footer>
@@ -312,12 +346,13 @@ footer {
 const COLS = 10;
 const ROWS = 20;
 const CELL = 30;
-const DROP_START = 455;
-const DROP_MIN = 84;
+const DROP_START = 419;
+const DROP_MIN = 77;
 const SPEED_RAMP_MS = 240000;
+const TETROMINO_TYPES = ["I", "J", "L", "O", "S", "T", "Z"];
 const COLORS = {
   I: "#35d7ff", J: "#6587ff", L: "#ff9a32", O: "#ffe347",
-  S: "#c9ff27", T: "#a971ff", Z: "#ff5670"
+  S: "#c9ff27", T: "#a971ff", Z: "#ff5670", B: "#ff6b2c"
 };
 const SHAPES = {
   I: [[0,0,0,0],[1,1,1,1],[0,0,0,0],[0,0,0,0]],
@@ -326,7 +361,8 @@ const SHAPES = {
   O: [[1,1],[1,1]],
   S: [[0,1,1],[1,1,0],[0,0,0]],
   T: [[0,1,0],[1,1,1],[0,0,0]],
-  Z: [[1,1,0],[0,1,1],[0,0,0]]
+  Z: [[1,1,0],[0,1,1],[0,0,0]],
+  B: [[1]]
 };
 
 const canvas = document.querySelector("#gameCanvas");
@@ -341,6 +377,12 @@ const overlayKicker = document.querySelector("#overlayKicker");
 const overlayTitle = document.querySelector("#overlayTitle");
 const overlayHint = document.querySelector("#overlayHint");
 const startButton = document.querySelector("#startButton");
+const shiftFill = document.querySelector("#shiftFill");
+const shiftStatus = document.querySelector("#shiftStatus");
+const shiftButton = document.querySelector("#shiftButton");
+const challengeStatus = document.querySelector("#challengeStatus");
+const gameToast = document.querySelector("#gameToast");
+const boardWrap = document.querySelector(".board-wrap");
 
 let board = emptyBoard();
 let current = null;
@@ -354,13 +396,22 @@ let dropCounter = 0;
 let activePlayTime = 0;
 let lastTime = 0;
 let soundOn = true;
+let shiftCharge = 0;
+let surgeTime = 0;
+let bombQueued = false;
+let comboStreak = 0;
+let targetRow = null;
+let targetPiecesLeft = 0;
+let piecesUntilTarget = 8;
+let toastTimer = null;
+let bombReadyAnnounced = false;
 
 function emptyBoard() {
   return Array.from({ length: ROWS }, () => Array(COLS).fill(null));
 }
 
 function shuffledBag() {
-  const values = Object.keys(SHAPES);
+  const values = [...TETROMINO_TYPES];
   for (let i = values.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [values[i], values[j]] = [values[j], values[i]];
@@ -379,8 +430,10 @@ function makePiece(type) {
 }
 
 function spawnPiece() {
-  current = makePiece(nextType || takeType());
-  nextType = takeType();
+  const type = bombQueued ? "B" : (nextType || takeType());
+  current = makePiece(type);
+  if (bombQueued) bombQueued = false;
+  else nextType = takeType();
   drawNext();
   if (collides(current)) endGame();
 }
@@ -405,8 +458,10 @@ function merge() {
 
 function clearLines() {
   let cleared = 0;
+  let targetHit = false;
   for (let y = ROWS - 1; y >= 0; y--) {
     if (board[y].every(Boolean)) {
+      if (y === targetRow) targetHit = true;
       board.splice(y, 1);
       board.unshift(Array(COLS).fill(null));
       cleared++;
@@ -414,18 +469,121 @@ function clearLines() {
     }
   }
   if (cleared) {
-    score += [0, 100, 300, 500, 800][cleared] * level;
+    comboStreak++;
+    const comboMultiplier = Math.min(comboStreak, 5);
+    const surgeMultiplier = surgeTime > 0 ? 2 : 1;
+    score += [0, 100, 300, 500, 800][cleared] * level * comboMultiplier * surgeMultiplier;
     lines += cleared;
+    addShiftCharge(cleared * 25);
     level = Math.max(Math.floor(lines / 10), Math.floor(activePlayTime / 30000)) + 1;
     beep(180 + cleared * 85, .08);
+    showToast(comboMultiplier > 1 ? `${comboMultiplier}× COMBO` : `${cleared} ROW${cleared > 1 ? "S" : ""} CLEARED`);
     updateStats();
-  }
+    updateShiftUI();
+  } else comboStreak = 0;
+  return { cleared, targetHit };
 }
 
 function lockPiece() {
   merge();
-  clearLines();
+  if (current.type === "B") detonateBomb(current.x, current.y);
+  const result = clearLines();
+  updateTargetChallenge(result.targetHit);
+  notifyBombReady();
   spawnPiece();
+}
+
+function detonateBomb(centerX, centerY) {
+  for (let y = centerY - 1; y <= centerY + 1; y++) {
+    for (let x = centerX - 1; x <= centerX + 1; x++) {
+      if (y >= 0 && y < ROWS && x >= 0 && x < COLS) board[y][x] = null;
+    }
+  }
+  score += 300 * level * (surgeTime > 0 ? 2 : 1);
+  boardWrap.classList.remove("flash");
+  void boardWrap.offsetWidth;
+  boardWrap.classList.add("flash");
+  showToast("BOOM! +300", "bomb");
+  beep(70, .2);
+  updateStats();
+}
+
+function startTargetChallenge() {
+  const candidates = Array.from({ length: 8 }, (_, i) => i + 11);
+  candidates.sort((a, b) => board[b].filter(Boolean).length - board[a].filter(Boolean).length);
+  targetRow = candidates[0];
+  targetPiecesLeft = 3;
+  showToast("GOLD ROW: 3 PIECES");
+  updateShiftUI();
+}
+
+function updateTargetChallenge(targetHit) {
+  if (targetRow !== null) {
+    if (targetHit) {
+      score += 500 * level;
+      addShiftCharge(50);
+      targetRow = null;
+      targetPiecesLeft = 0;
+      piecesUntilTarget = 9;
+      showToast("TARGET! +500");
+      beep(700, .1);
+      updateStats();
+    } else {
+      targetPiecesLeft--;
+      if (targetPiecesLeft <= 0) {
+        targetRow = null;
+        piecesUntilTarget = 6;
+        showToast("TARGET MISSED");
+      }
+    }
+  } else {
+    piecesUntilTarget--;
+    if (piecesUntilTarget <= 0) startTargetChallenge();
+  }
+  updateShiftUI();
+}
+
+function activateShift() {
+  if (state !== "playing" || shiftCharge < 100 || surgeTime > 0) return;
+  shiftCharge = 0;
+  bombReadyAnnounced = false;
+  surgeTime = 5000;
+  bombQueued = true;
+  drawNext();
+  updateShiftUI();
+  showToast("SHIFT SURGE!");
+  beep(520, .15);
+}
+
+function addShiftCharge(amount) {
+  shiftCharge = Math.min(100, shiftCharge + amount);
+}
+
+function notifyBombReady() {
+  if (shiftCharge < 100 || bombReadyAnnounced) return;
+  bombReadyAnnounced = true;
+  setTimeout(() => showToast("CLICK B FOR BOMB", "bomb"), 500);
+  beep(620, .1);
+}
+
+function updateShiftUI() {
+  const active = surgeTime > 0;
+  shiftFill.style.width = `${active ? 100 : shiftCharge}%`;
+  shiftStatus.textContent = active ? `${Math.ceil(surgeTime / 1000)}s` : `${shiftCharge}%`;
+  shiftButton.classList.toggle("ready", shiftCharge >= 100 && !active);
+  shiftButton.textContent = active ? "Surge active · 2× score" : shiftCharge >= 100 ? "Press B · Bomb ready" : "Charge with row clears";
+  challengeStatus.textContent = targetRow !== null
+    ? `Gold row active · ${targetPiecesLeft} piece${targetPiecesLeft === 1 ? "" : "s"} left`
+    : `Gold target arrives in ${piecesUntilTarget} piece${piecesUntilTarget === 1 ? "" : "s"}.`;
+}
+
+function showToast(message, type = "") {
+  clearTimeout(toastTimer);
+  gameToast.textContent = message;
+  gameToast.className = `game-toast ${type}`.trim();
+  void gameToast.offsetWidth;
+  gameToast.classList.add("show");
+  toastTimer = setTimeout(() => gameToast.classList.remove("show"), 1150);
 }
 
 function move(dx) {
@@ -437,7 +595,7 @@ function softDrop(manual = true) {
   if (state !== "playing") return;
   if (!collides(current, 0, 1)) {
     current.y++;
-    if (manual) { score++; updateStats(); }
+    if (manual) { score += surgeTime > 0 ? 2 : 1; updateStats(); }
   } else {
     lockPiece();
   }
@@ -448,7 +606,7 @@ function hardDrop() {
   if (state !== "playing") return;
   let distance = 0;
   while (!collides(current, 0, 1)) { current.y++; distance++; }
-  score += distance * 2;
+  score += distance * 2 * (surgeTime > 0 ? 2 : 1);
   updateStats();
   beep(95, .045);
   lockPiece();
@@ -496,6 +654,16 @@ function drawBoard() {
   ctx.lineWidth = 1;
   for (let x = 1; x < COLS; x++) { ctx.beginPath(); ctx.moveTo(x * CELL + .5, 0); ctx.lineTo(x * CELL + .5, canvas.height); ctx.stroke(); }
   for (let y = 1; y < ROWS; y++) { ctx.beginPath(); ctx.moveTo(0, y * CELL + .5); ctx.lineTo(canvas.width, y * CELL + .5); ctx.stroke(); }
+  if (targetRow !== null) {
+    ctx.fillStyle = "rgba(255, 227, 71, .12)";
+    ctx.fillRect(0, targetRow * CELL, canvas.width, CELL);
+    ctx.save();
+    ctx.setLineDash([8, 5]);
+    ctx.strokeStyle = "rgba(255, 227, 71, .9)";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(1, targetRow * CELL + 1, canvas.width - 2, CELL - 2);
+    ctx.restore();
+  }
   board.forEach((row, y) => row.forEach((type, x) => { if (type) drawBlock(ctx, x, y, COLORS[type]); }));
 
   if (!current) return;
@@ -516,8 +684,9 @@ function drawNext() {
   nextCtx.clearRect(0, 0, nextCanvas.width, nextCanvas.height);
   nextCtx.fillStyle = "#12151d";
   nextCtx.fillRect(0, 0, nextCanvas.width, nextCanvas.height);
-  if (!nextType) return;
-  const matrix = SHAPES[nextType];
+  const previewType = bombQueued ? "B" : nextType;
+  if (!previewType) return;
+  const matrix = SHAPES[previewType];
   const size = 22;
   const filledRows = matrix.filter(row => row.some(Boolean));
   const occupied = [];
@@ -527,7 +696,7 @@ function drawNext() {
   const minY = Math.min(...occupied.map(p => p.y));
   const startX = (nextCanvas.width - (maxX - minX + 1) * size) / 2;
   const startY = (nextCanvas.height - filledRows.length * size) / 2;
-  occupied.forEach(p => drawBlock(nextCtx, startX / size + p.x - minX, startY / size + p.y - minY, COLORS[nextType], size));
+  occupied.forEach(p => drawBlock(nextCtx, startX / size + p.x - minX, startY / size + p.y - minY, COLORS[previewType], size));
 }
 
 function updateStats() {
@@ -539,6 +708,9 @@ function updateStats() {
 function startGame() {
   board = emptyBoard(); bag = []; nextType = takeType();
   score = 0; lines = 0; level = 1; dropCounter = 0; activePlayTime = 0;
+  shiftCharge = 0; surgeTime = 0; bombQueued = false; comboStreak = 0; bombReadyAnnounced = false;
+  targetRow = null; targetPiecesLeft = 0; piecesUntilTarget = 8;
+  updateShiftUI();
   updateStats(); spawnPiece(); state = "playing";
   overlay.classList.add("hidden");
   beep(440, .06);
@@ -592,13 +764,19 @@ function update(time = 0) {
   if (state === "playing") {
     dropCounter += delta;
     activePlayTime += delta;
+    if (surgeTime > 0) {
+      surgeTime = Math.max(0, surgeTime - delta);
+      if (surgeTime === 0) showToast("SURGE COMPLETE");
+      updateShiftUI();
+    }
     const timedLevel = Math.floor(activePlayTime / 30000) + 1;
     const lineLevel = Math.floor(lines / 10) + 1;
     const newLevel = Math.max(timedLevel, lineLevel);
     if (newLevel !== level) { level = newLevel; updateStats(); beep(520, .05); }
     const rampProgress = Math.min(activePlayTime / SPEED_RAMP_MS, 1);
-    const lineBonus = Math.floor(lines / 10) * 25;
-    const dropDelay = Math.max(DROP_MIN, DROP_START - (DROP_START - DROP_MIN) * rampProgress - lineBonus);
+    const lineBonus = Math.floor(lines / 10) * 23;
+    const baseDropDelay = Math.max(DROP_MIN, DROP_START - (DROP_START - DROP_MIN) * rampProgress - lineBonus);
+    const dropDelay = surgeTime > 0 ? baseDropDelay * 2.5 : baseDropDelay;
     if (dropCounter > dropDelay) softDrop(false);
   }
   drawBoard();
@@ -613,11 +791,13 @@ document.addEventListener("keydown", event => {
   else if (event.code === "ArrowDown") softDrop();
   else if (event.code === "ArrowUp") rotate();
   else if (event.code === "Space") hardDrop();
+  else if (event.code === "KeyB") activateShift();
   else if (event.code === "KeyP") togglePause();
   else if (event.code === "KeyR") startGame();
 });
 
 startButton.addEventListener("click", () => state === "paused" ? togglePause() : startGame());
+shiftButton.addEventListener("click", activateShift);
 document.querySelector("#restartButton").addEventListener("click", startGame);
 document.querySelector("#soundButton").addEventListener("click", event => {
   soundOn = !soundOn;
@@ -625,12 +805,13 @@ document.querySelector("#soundButton").addEventListener("click", event => {
   if (soundOn) beep(440, .04);
 });
 
-const actions = { left: () => move(-1), right: () => move(1), rotate, down: softDrop, drop: hardDrop };
+const actions = { left: () => move(-1), right: () => move(1), rotate, down: softDrop, drop: hardDrop, shift: activateShift };
 document.querySelectorAll("[data-action]").forEach(button => {
   button.addEventListener("pointerdown", event => { event.preventDefault(); actions[button.dataset.action](); });
 });
 
 drawBoard();
+updateShiftUI();
 requestAnimationFrame(update);
     </script>
   </body>
